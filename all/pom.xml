@@ -258,13 +258,6 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>dubbo-container-log4j</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
             <artifactId>dubbo-container-logback</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
@@ -408,7 +401,6 @@
                                     <include>com.alibaba:dubbo-config-spring</include>
                                     <include>com.alibaba:dubbo-container-api</include>
                                     <include>com.alibaba:dubbo-container-spring</include>
-                                    <include>com.alibaba:dubbo-container-log4j</include>
                                     <include>com.alibaba:dubbo-container-logback</include>
                                     <include>com.alibaba:dubbo-qos</include>
                                     <include>com.alibaba:dubbo-serialization-api</include>

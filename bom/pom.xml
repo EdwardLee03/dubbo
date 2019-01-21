@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
     <modelVersion>4.0.0</modelVersion>
-    <properties>
-        <hessian_lite_version>3.2.4</hessian_lite_version>
-    </properties>
-
     <parent>
         <groupId>org.sonatype.oss</groupId>
         <artifactId>oss-parent</artifactId>
@@ -34,7 +29,7 @@
         <connection>scm:git:https://github.com/apache/incubator-dubbo.git</connection>
         <developerConnection>scm:git:https://github.com/apache/incubator-dubbo.git</developerConnection>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
     <mailingLists>
         <mailingList>
             <name>Development List</name>
@@ -73,6 +68,10 @@
         <system>Github Issues</system>
         <url>https://github.com/apache/incubator-dubbo/issues</url>
     </issueManagement>
+
+    <properties>
+        <hessian_lite_version>3.2.4</hessian_lite_version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -234,11 +233,6 @@
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>dubbo-container-spring</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dubbo-container-log4j</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

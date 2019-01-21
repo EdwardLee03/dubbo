@@ -166,10 +166,6 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>dubbo-container-log4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
             <artifactId>dubbo-container-logback</artifactId>
         </dependency>
         <dependency>
