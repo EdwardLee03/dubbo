@@ -97,13 +97,6 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>dubbo-remoting-p2p</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
             <artifactId>dubbo-rpc-api</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
@@ -266,7 +259,6 @@
                                     <include>com.alibaba:dubbo-remoting-api</include>
                                     <include>com.alibaba:dubbo-remoting-netty</include>
                                     <include>com.alibaba:dubbo-remoting-netty4</include>
-                                    <include>com.alibaba:dubbo-remoting-p2p</include>
                                     <include>com.alibaba:dubbo-remoting-zookeeper</include>
                                     <include>com.alibaba:dubbo-rpc-api</include>
                                     <include>com.alibaba:dubbo-rpc-dubbo</include>
