@@ -33,6 +33,5 @@
         <module>dubbo-serialization-hessian2</module>
         <module>dubbo-serialization-fastjson</module>
         <module>dubbo-serialization-kryo</module>
-        <module>dubbo-serialization-fst</module>
     </modules>
 </project>
