@@ -122,11 +122,6 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>dubbo-remoting-mina</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
                 <artifactId>dubbo-remoting-p2p</artifactId>
                 <version>${project.version}</version>
             </dependency>
