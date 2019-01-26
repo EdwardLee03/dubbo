@@ -33,6 +33,5 @@
         <module>dubbo-rpc-dubbo</module>
         <module>dubbo-rpc-injvm</module>
         <module>dubbo-rpc-http</module>
-        <module>dubbo-rpc-thrift</module>
     </modules>
 </project>

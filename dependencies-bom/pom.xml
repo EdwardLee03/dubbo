@@ -83,7 +83,6 @@
         <zkclient_version>0.2</zkclient_version>
         <curator_version>2.12.0</curator_version>
         <jedis_version>2.9.0</jedis_version>
-        <thrift_version>0.8.0</thrift_version>
         <hessian_version>4.0.38</hessian_version>
         <servlet_version>3.1.0</servlet_version>
         <jetty_version>6.1.26</jetty_version>
@@ -163,11 +162,6 @@
                 <groupId>redis.clients</groupId>
                 <artifactId>jedis</artifactId>
                 <version>${jedis_version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.thrift</groupId>
-                <artifactId>libthrift</artifactId>
-                <version>${thrift_version}</version>
             </dependency>
             <dependency>
                 <groupId>com.caucho</groupId>
