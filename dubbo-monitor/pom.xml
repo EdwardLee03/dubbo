@@ -30,6 +30,5 @@
     </properties>
     <modules>
         <module>dubbo-monitor-api</module>
-        <module>dubbo-monitor-default</module>
     </modules>
 </project>

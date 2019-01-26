@@ -112,11 +112,6 @@
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>dubbo-monitor-default</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
             <artifactId>dubbo-container-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
