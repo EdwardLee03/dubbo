@@ -153,11 +153,6 @@
             <artifactId>dubbo-serialization-kryo</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>dubbo-serialization-jdk</artifactId>
-            <version>2.6.6-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
