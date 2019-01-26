@@ -85,7 +85,6 @@
         <jedis_version>2.9.0</jedis_version>
         <hessian_version>4.0.38</hessian_version>
         <servlet_version>3.1.0</servlet_version>
-        <jetty_version>6.1.26</jetty_version>
         <validation_version>1.1.0.Final</validation_version>
         <hibernate_validator_version>5.4.1.Final</hibernate_validator_version>
         <jel_version>3.0.1-b08</jel_version>
@@ -93,7 +92,6 @@
         <kryo_version>4.0.1</kryo_version>
         <kryo_serializers_version>0.42</kryo_serializers_version>
 
-        <tomcat_embed_version>8.5.31</tomcat_embed_version>
         <!-- Log libs -->
         <slf4j_version>1.7.25</slf4j_version>
         <jcl_version>1.2</jcl_version>
@@ -173,11 +171,6 @@
                 <version>${servlet_version}</version>
             </dependency>
             <dependency>
-                <groupId>org.mortbay.jetty</groupId>
-                <artifactId>jetty</artifactId>
-                <version>${jetty_version}</version>
-            </dependency>
-            <dependency>
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${validation_version}</version>
@@ -206,16 +199,6 @@
                 <groupId>de.javakaffee</groupId>
                 <artifactId>kryo-serializers</artifactId>
                 <version>${kryo_serializers_version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-core</artifactId>
-                <version>${tomcat_embed_version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-logging-juli</artifactId>
-                <version>${tomcat_embed_version}</version>
             </dependency>
             <!-- Log libs -->
             <dependency>
