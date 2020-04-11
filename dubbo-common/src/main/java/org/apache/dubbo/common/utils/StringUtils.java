@@ -16,7 +16,6 @@
  */
 package org.apache.dubbo.common.utils;
 
-import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.io.UnsafeStringWriter;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
@@ -26,6 +25,7 @@ import com.alibaba.fastjson.JSON;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +33,60 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.String.valueOf;
+import static org.apache.dubbo.common.constants.CommonConstants.COMMA_SEPARATOR;
+import static org.apache.dubbo.common.constants.CommonConstants.COMMA_SPLIT_PATTERN;
+import static org.apache.dubbo.common.constants.CommonConstants.DOT_REGEX;
+import static org.apache.dubbo.common.constants.CommonConstants.GROUP_KEY;
+import static org.apache.dubbo.common.constants.CommonConstants.HIDE_KEY_PREFIX;
+import static org.apache.dubbo.common.constants.CommonConstants.INTERFACE_KEY;
+import static org.apache.dubbo.common.constants.CommonConstants.SEPARATOR_REGEX;
+import static org.apache.dubbo.common.constants.CommonConstants.UNDERLINE_SEPARATOR;
+import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
+
 /**
  * StringUtils
  */
 
 public final class StringUtils {
 
-    public static final String EMPTY = "";
+    public static final String EMPTY_STRING = "";
     public static final int INDEX_NOT_FOUND = -1;
     public static final String[] EMPTY_STRING_ARRAY = new String[0];
 
     private static final Logger logger = LoggerFactory.getLogger(StringUtils.class);
     private static final Pattern KVP_PATTERN = Pattern.compile("([_.a-zA-Z0-9][-_.a-zA-Z0-9]*)[=](.*)"); //key value pair pattern.
     private static final Pattern INT_PATTERN = Pattern.compile("^\\d+$");
+    private static final Pattern PARAMETERS_PATTERN = Pattern.compile("^\\[((\\s*\\{\\s*[\\w_\\-\\.]+\\s*:\\s*.+?\\s*\\}\\s*,?\\s*)+)\\s*\\]$");
+    private static final Pattern PAIR_PARAMETERS_PATTERN = Pattern.compile("^\\{\\s*([\\w-_\\.]+)\\s*:\\s*(.+)\\s*\\}$");
     private static final int PAD_LIMIT = 8192;
+
+    /**
+     * @since 2.7.5
+     */
+    public static final char EQUAL_CHAR = '=';
+
+    public static final String EQUAL = valueOf(EQUAL_CHAR);
+
+    public static final char AND_CHAR = '&';
+
+    public static final String AND = valueOf(AND_CHAR);
+
+    public static final char SEMICOLON_CHAR = ';';
+
+    public static final String SEMICOLON = valueOf(SEMICOLON_CHAR);
+
+    public static final char QUESTION_MASK_CHAR = '?';
+
+    public static final String QUESTION_MASK = valueOf(QUESTION_MASK_CHAR);
+
+    public static final char SLASH_CHAR = '/';
+
+    public static final String SLASH = valueOf(SLASH_CHAR);
+
+    public static final char HYPHEN_CHAR = '-';
+
+    public static final String HYPHEN = valueOf(HYPHEN_CHAR);
 
     private StringUtils() {
     }
@@ -55,10 +95,9 @@ public final class StringUtils {
      * Gets a CharSequence length or {@code 0} if the CharSequence is
      * {@code null}.
      *
-     * @param cs
-     *            a CharSequence or {@code null}
+     * @param cs a CharSequence or {@code null}
      * @return CharSequence length or {@code 0} if the CharSequence is
-     *         {@code null}.
+     * {@code null}.
      */
     public static int length(final CharSequence cs) {
         return cs == null ? 0 : cs.length();
@@ -77,10 +116,10 @@ public final class StringUtils {
      * StringUtils.repeat("a", -2) = ""
      * </pre>
      *
-     * @param str  the String to repeat, may be null
-     * @param repeat  number of times to repeat str, negative treated as zero
+     * @param str    the String to repeat, may be null
+     * @param repeat number of times to repeat str, negative treated as zero
      * @return a new String consisting of the original String repeated,
-     *  {@code null} if null String input
+     * {@code null} if null String input
      */
     public static String repeat(final String str, final int repeat) {
         // Performance tuned for 2.0 (JDK1.4)
@@ -89,7 +128,7 @@ public final class StringUtils {
             return null;
         }
         if (repeat <= 0) {
-            return EMPTY;
+            return EMPTY_STRING;
         }
         final int inputLength = str.length();
         if (repeat == 1 || inputLength == 0) {
@@ -101,9 +140,9 @@ public final class StringUtils {
 
         final int outputLength = inputLength * repeat;
         switch (inputLength) {
-            case 1 :
+            case 1:
                 return repeat(str.charAt(0), repeat);
-            case 2 :
+            case 2:
                 final char ch0 = str.charAt(0);
                 final char ch1 = str.charAt(1);
                 final char[] output2 = new char[outputLength];
@@ -112,7 +151,7 @@ public final class StringUtils {
                     output2[i + 1] = ch1;
                 }
                 return new String(output2);
-            default :
+            default:
                 final StringBuilder buf = new StringBuilder(outputLength);
                 for (int i = 0; i < repeat; i++) {
                     buf.append(str);
@@ -134,15 +173,15 @@ public final class StringUtils {
      * StringUtils.repeat("?", ", ", 3)  = "?, ?, ?"
      * </pre>
      *
-     * @param str        the String to repeat, may be null
-     * @param separator  the String to inject, may be null
-     * @param repeat     number of times to repeat str, negative treated as zero
+     * @param str       the String to repeat, may be null
+     * @param separator the String to inject, may be null
+     * @param repeat    number of times to repeat str, negative treated as zero
      * @return a new String consisting of the original String repeated,
-     *  {@code null} if null String input
+     * {@code null} if null String input
      * @since 2.5
      */
     public static String repeat(final String str, final String separator, final int repeat) {
-        if(str == null || separator == null) {
+        if (str == null || separator == null) {
             return repeat(str, repeat);
         }
         // given that repeat(String, int) is quite optimized, better to rely on it than try and splice this into it
@@ -168,10 +207,10 @@ public final class StringUtils {
      * StringUtils.removeEnd("abc", "")    = "abc"
      * </pre>
      *
-     * @param str  the source String to search, may be null
-     * @param remove  the String to search for and remove, may be null
+     * @param str    the source String to search, may be null
+     * @param remove the String to search for and remove, may be null
      * @return the substring with the string removed if found,
-     *  {@code null} if null String input
+     * {@code null} if null String input
      */
     public static String removeEnd(final String str, final String remove) {
         if (isAnyEmpty(str, remove)) {
@@ -200,8 +239,8 @@ public final class StringUtils {
      * consider using {@link #repeat(String, int)} instead.
      * </p>
      *
-     * @param ch  character to repeat
-     * @param repeat  number of times to repeat char, negative treated as zero
+     * @param ch     character to repeat
+     * @param repeat number of times to repeat char, negative treated as zero
      * @return String with repeated character
      * @see #repeat(String, int)
      */
@@ -234,8 +273,8 @@ public final class StringUtils {
      * StringUtils.stripEnd("120.00", ".0")   = "12"
      * </pre>
      *
-     * @param str  the String to remove characters from, may be null
-     * @param stripChars  the set of characters to remove, null treated as whitespace
+     * @param str        the String to remove characters from, may be null
+     * @param stripChars the set of characters to remove, null treated as whitespace
      * @return the stripped String, {@code null} if null String input
      */
     public static String stripEnd(final String str, final String stripChars) {
@@ -274,12 +313,12 @@ public final class StringUtils {
      * StringUtils.replace("aba", "a", "z")   = "zbz"
      * </pre>
      *
-     * @see #replace(String text, String searchString, String replacement, int max)
-     * @param text  text to search and replace in, may be null
-     * @param searchString  the String to search for, may be null
+     * @param text         text to search and replace in, may be null
+     * @param searchString the String to search for, may be null
      * @param replacement  the String to replace it with, may be null
      * @return the text with any replacements processed,
-     *  {@code null} if null String input
+     * {@code null} if null String input
+     * @see #replace(String text, String searchString, String replacement, int max)
      */
     public static String replace(final String text, final String searchString, final String replacement) {
         return replace(text, searchString, replacement, -1);
@@ -306,12 +345,12 @@ public final class StringUtils {
      * StringUtils.replace("abaa", "a", "z", -1)  = "zbzz"
      * </pre>
      *
-     * @param text  text to search and replace in, may be null
-     * @param searchString  the String to search for, may be null
+     * @param text         text to search and replace in, may be null
+     * @param searchString the String to search for, may be null
      * @param replacement  the String to replace it with, may be null
-     * @param max  maximum number of values to replace, or {@code -1} if no maximum
+     * @param max          maximum number of values to replace, or {@code -1} if no maximum
      * @return the text with any replacements processed,
-     *  {@code null} if null String input
+     * {@code null} if null String input
      */
     public static String replace(final String text, final String searchString, final String replacement, int max) {
         if (isAnyEmpty(text, searchString) || replacement == null || max == 0) {
@@ -328,7 +367,7 @@ public final class StringUtils {
         increase *= max < 0 ? 16 : max > 64 ? 64 : max;
         final StringBuilder buf = new StringBuilder(text.length() + increase);
         while (end != INDEX_NOT_FOUND) {
-            buf.append(text.substring(start, end)).append(replacement);
+            buf.append(text, start, end).append(replacement);
             start = end + replLength;
             if (--max == 0) {
                 break;
@@ -339,8 +378,17 @@ public final class StringUtils {
         return buf.toString();
     }
 
-    public static boolean isBlank(String str) {
-        return isEmpty(str);
+    public static boolean isBlank(CharSequence cs) {
+        int strLen;
+        if (cs == null || (strLen = cs.length()) == 0) {
+            return true;
+        }
+        for (int i = 0; i < strLen; i++) {
+            if (!Character.isWhitespace(cs.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -374,7 +422,7 @@ public final class StringUtils {
         if (ArrayUtils.isEmpty(ss)) {
             return false;
         }
-        for (final String s : ss){
+        for (final String s : ss) {
             if (isEmpty(s)) {
                 return false;
             }
@@ -459,7 +507,15 @@ public final class StringUtils {
     }
 
     public static boolean isContains(String values, String value) {
-        return isNotEmpty(values) && isContains(Constants.COMMA_SPLIT_PATTERN.split(values), value);
+        return isNotEmpty(values) && isContains(COMMA_SPLIT_PATTERN.split(values), value);
+    }
+
+    public static boolean isContains(String str, char ch) {
+        return isNotEmpty(str) && str.indexOf(ch) >= 0;
+    }
+
+    public static boolean isNotContains(String str, char ch) {
+        return !isContains(str, ch);
     }
 
     /**
@@ -478,18 +534,27 @@ public final class StringUtils {
         return false;
     }
 
-    public static boolean isNumeric(String str) {
-        if (str == null) {
+    public static boolean isNumeric(String str, boolean allowDot) {
+        if (str == null || str.isEmpty()) {
             return false;
         }
+        boolean hasDot = false;
         int sz = str.length();
         for (int i = 0; i < sz; i++) {
+            if (str.charAt(i) == '.') {
+                if (hasDot || !allowDot) {
+                    return false;
+                }
+                hasDot = true;
+                continue;
+            }
             if (!Character.isDigit(str.charAt(i))) {
                 return false;
             }
         }
         return true;
     }
+
 
     /**
      * @param e
@@ -570,23 +635,38 @@ public final class StringUtils {
      * @return string array.
      */
     public static String[] split(String str, char ch) {
-        List<String> list = null;
-        char c;
+        if (isEmpty(str)) {
+            return EMPTY_STRING_ARRAY;
+        }
+        return splitToList0(str, ch).toArray(EMPTY_STRING_ARRAY);
+    }
+
+    private static List<String> splitToList0(String str, char ch) {
+        List<String> result = new ArrayList<>();
         int ix = 0, len = str.length();
         for (int i = 0; i < len; i++) {
-            c = str.charAt(i);
-            if (c == ch) {
-                if (list == null) {
-                    list = new ArrayList<String>();
-                }
-                list.add(str.substring(ix, i));
+            if (str.charAt(i) == ch) {
+                result.add(str.substring(ix, i));
                 ix = i + 1;
             }
         }
-        if (ix > 0) {
-            list.add(str.substring(ix));
+
+        if (ix >= 0) {
+            result.add(str.substring(ix));
         }
-        return list == null ? EMPTY_STRING_ARRAY : (String[]) list.toArray(EMPTY_STRING_ARRAY);
+        return result;
+    }
+
+    /**
+     * Splits String around matches of the given character.
+     * <p>
+     * Note: Compare with {@link StringUtils#split(String, char)}, this method reduce memory copy.
+     */
+    public static List<String> splitToList(String str, char ch) {
+        if (isEmpty(str)) {
+            return Collections.emptyList();
+        }
+        return splitToList0(str, ch);
     }
 
     /**
@@ -597,7 +677,7 @@ public final class StringUtils {
      */
     public static String join(String[] array) {
         if (ArrayUtils.isEmpty(array)) {
-            return EMPTY;
+            return EMPTY_STRING;
         }
         StringBuilder sb = new StringBuilder();
         for (String s : array) {
@@ -615,7 +695,7 @@ public final class StringUtils {
      */
     public static String join(String[] array, char split) {
         if (ArrayUtils.isEmpty(array)) {
-            return EMPTY;
+            return EMPTY_STRING;
         }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < array.length; i++) {
@@ -636,7 +716,7 @@ public final class StringUtils {
      */
     public static String join(String[] array, String split) {
         if (ArrayUtils.isEmpty(array)) {
-            return EMPTY;
+            return EMPTY_STRING;
         }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < array.length; i++) {
@@ -650,7 +730,7 @@ public final class StringUtils {
 
     public static String join(Collection<String> coll, String split) {
         if (CollectionUtils.isEmpty(coll)) {
-            return EMPTY;
+            return EMPTY_STRING;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -706,12 +786,12 @@ public final class StringUtils {
 
     public static String getServiceKey(Map<String, String> ps) {
         StringBuilder buf = new StringBuilder();
-        String group = ps.get(Constants.GROUP_KEY);
+        String group = ps.get(GROUP_KEY);
         if (isNotEmpty(group)) {
             buf.append(group).append("/");
         }
-        buf.append(ps.get(Constants.INTERFACE_KEY));
-        String version = ps.get(Constants.VERSION_KEY);
+        buf.append(ps.get(INTERFACE_KEY));
+        String version = ps.get(VERSION_KEY);
         if (isNotEmpty(group)) {
             buf.append(":").append(version);
         }
@@ -748,7 +828,7 @@ public final class StringUtils {
                 if (buf == null) {
                     buf = new StringBuilder();
                     if (i > 0) {
-                        buf.append(camelName.substring(0, i));
+                        buf.append(camelName, 0, i);
                     }
                 }
                 if (i > 0) {
@@ -766,7 +846,7 @@ public final class StringUtils {
         StringBuilder buf = new StringBuilder();
         for (Object arg : args) {
             if (buf.length() > 0) {
-                buf.append(Constants.COMMA_SEPARATOR);
+                buf.append(COMMA_SEPARATOR);
             }
             if (arg == null || ReflectUtils.isPrimitives(arg.getClass())) {
                 buf.append(arg);
@@ -780,5 +860,144 @@ public final class StringUtils {
             }
         }
         return buf.toString();
+    }
+
+    public static String trim(String str) {
+        return str == null ? null : str.trim();
+    }
+
+    public static String toURLKey(String key) {
+        return key.toLowerCase().replaceAll(SEPARATOR_REGEX, HIDE_KEY_PREFIX);
+    }
+
+    public static String toOSStyleKey(String key) {
+        key = key.toUpperCase().replaceAll(DOT_REGEX, UNDERLINE_SEPARATOR);
+        if (!key.startsWith("DUBBO_")) {
+            key = "DUBBO_" + key;
+        }
+        return key;
+    }
+
+    public static boolean isAllUpperCase(String str) {
+        if (str != null && !isEmpty(str)) {
+            int sz = str.length();
+
+            for (int i = 0; i < sz; ++i) {
+                if (!Character.isUpperCase(str.charAt(i))) {
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static String[] delimitedListToStringArray(String str, String delimiter) {
+        return delimitedListToStringArray(str, delimiter, (String) null);
+    }
+
+    public static String[] delimitedListToStringArray(String str, String delimiter, String charsToDelete) {
+        if (str == null) {
+            return new String[0];
+        } else if (delimiter == null) {
+            return new String[]{str};
+        } else {
+            List<String> result = new ArrayList();
+            int pos;
+            if ("".equals(delimiter)) {
+                for (pos = 0; pos < str.length(); ++pos) {
+                    result.add(deleteAny(str.substring(pos, pos + 1), charsToDelete));
+                }
+            } else {
+                int delPos;
+                for (pos = 0; (delPos = str.indexOf(delimiter, pos)) != -1; pos = delPos + delimiter.length()) {
+                    result.add(deleteAny(str.substring(pos, delPos), charsToDelete));
+                }
+
+                if (str.length() > 0 && pos <= str.length()) {
+                    result.add(deleteAny(str.substring(pos), charsToDelete));
+                }
+            }
+
+            return toStringArray((Collection) result);
+        }
+    }
+
+    public static String arrayToDelimitedString(Object[] arr, String delim) {
+        if (ArrayUtils.isEmpty(arr)) {
+            return "";
+        } else if (arr.length == 1) {
+            return nullSafeToString(arr[0]);
+        } else {
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < arr.length; ++i) {
+                if (i > 0) {
+                    sb.append(delim);
+                }
+
+                sb.append(arr[i]);
+            }
+
+            return sb.toString();
+        }
+    }
+
+    public static String deleteAny(String inString, String charsToDelete) {
+        if (isNotEmpty(inString) && isNotEmpty(charsToDelete)) {
+            StringBuilder sb = new StringBuilder(inString.length());
+
+            for (int i = 0; i < inString.length(); ++i) {
+                char c = inString.charAt(i);
+                if (charsToDelete.indexOf(c) == -1) {
+                    sb.append(c);
+                }
+            }
+
+            return sb.toString();
+        } else {
+            return inString;
+        }
+    }
+
+    public static String[] toStringArray(Collection<String> collection) {
+        return (String[]) collection.toArray(new String[0]);
+    }
+
+    public static String nullSafeToString(Object obj) {
+        if (obj == null) {
+            return "null";
+        } else if (obj instanceof String) {
+            return (String) obj;
+        } else {
+            String str = obj.toString();
+            return str != null ? str : "";
+        }
+    }
+
+    /**
+     * @param rawParameters format like '[{a:b},{c:d}]'
+     * @return
+     */
+    public static Map<String, String> parseParameters(String rawParameters) {
+
+        Matcher matcher = PARAMETERS_PATTERN.matcher(rawParameters);
+        if (!matcher.matches()) {
+            return Collections.emptyMap();
+        }
+
+        String pairs = matcher.group(1);
+        String[] pairArr = pairs.split("\\s*,\\s*");
+
+        Map<String, String> parameters = new HashMap<>();
+        for (String pair : pairArr) {
+            Matcher pairMatcher = PAIR_PARAMETERS_PATTERN.matcher(pair);
+            if (pairMatcher.matches()) {
+                parameters.put(pairMatcher.group(1), pairMatcher.group(2));
+            }
+        }
+        return parameters;
     }
 }

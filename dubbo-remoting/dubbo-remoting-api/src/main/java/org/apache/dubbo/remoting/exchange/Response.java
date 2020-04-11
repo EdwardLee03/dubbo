@@ -16,14 +16,12 @@
  */
 package org.apache.dubbo.remoting.exchange;
 
+import static org.apache.dubbo.common.constants.CommonConstants.HEARTBEAT_EVENT;
+
 /**
  * Response
  */
 public class Response {
-
-    public static final String HEARTBEAT_EVENT = null;
-
-    public static final String READONLY_EVENT = "R";
 
     /**
      * ok.
@@ -135,6 +133,10 @@ public class Response {
     public void setEvent(String event) {
         mEvent = true;
         mResult = event;
+    }
+
+    public void setEvent(boolean mEvent) {
+        this.mEvent = mEvent;
     }
 
     public boolean isHeartbeat() {

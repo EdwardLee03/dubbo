@@ -16,12 +16,13 @@
  */
 package org.apache.dubbo.rpc.protocol.redis;
 
-import org.apache.dubbo.common.Constants;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.ExtensionLoader;
 import org.apache.dubbo.common.serialize.ObjectInput;
 import org.apache.dubbo.common.serialize.Serialization;
 import org.apache.dubbo.common.utils.NetUtils;
+import org.apache.dubbo.remoting.Constants;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Protocol;
 import org.apache.dubbo.rpc.ProxyFactory;
@@ -31,7 +32,6 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import redis.clients.jedis.Jedis;
@@ -39,6 +39,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.embedded.RedisServer;
+import redis.embedded.RedisServerBuilder;
 
 import java.io.ByteArrayInputStream;
 
@@ -58,10 +59,20 @@ public class RedisProtocolTest {
         String methodName = testInfo.getTestMethod().get().getName();
         if ("testAuthRedis".equals(methodName) || ("testWrongAuthRedis".equals(methodName))) {
             String password = "123456";
-            this.redisServer = RedisServer.builder().port(redisPort).setting("requirepass " + password).build();
+            RedisServerBuilder builder = RedisServer.builder().port(redisPort).setting("requirepass " + password);
+            if (SystemUtils.IS_OS_WINDOWS) {
+                // set maxheap to fix Windows error 0x70 while starting redis
+                builder.setting("maxheap 128mb");
+            }
+            redisServer = builder.build();
             this.registryUrl = URL.valueOf("redis://username:" + password + "@localhost:" + redisPort + "?db.index=0");
         } else {
-            this.redisServer = RedisServer.builder().port(redisPort).build();
+            RedisServerBuilder builder = RedisServer.builder().port(redisPort);
+            if (SystemUtils.IS_OS_WINDOWS) {
+                // set maxheap to fix Windows error 0x70 while starting redis
+                builder.setting("maxheap 128mb");
+            }
+            redisServer = builder.build();
             this.registryUrl = URL.valueOf("redis://localhost:" + redisPort);
         }
         this.redisServer.start();
@@ -71,7 +82,6 @@ public class RedisProtocolTest {
     public void tearDown() {
         this.redisServer.stop();
     }
-
     @Test
     public void testReferClass() {
         Invoker<IDemoService> refer = protocol.refer(IDemoService.class, registryUrl);
@@ -175,9 +185,7 @@ public class RedisProtocolTest {
 
         // jedis gets the result comparison
         JedisPool pool = new JedisPool(new GenericObjectPoolConfig(), "localhost", registryUrl.getPort(), 2000, password, database, (String) null);
-        Jedis jedis = null;
-        try {
-            jedis = pool.getResource();
+        try (Jedis jedis = pool.getResource()) {
             byte[] valueByte = jedis.get("key".getBytes());
             Serialization serialization = ExtensionLoader.getExtensionLoader(Serialization.class).getExtension(this.registryUrl.getParameter(Constants.SERIALIZATION_KEY, "java"));
             ObjectInput oin = serialization.deserialize(this.registryUrl, new ByteArrayInputStream(valueByte));
@@ -186,9 +194,6 @@ public class RedisProtocolTest {
         } catch (Exception e) {
             Assertions.fail("jedis gets the result comparison is error!");
         } finally {
-            if (jedis != null) {
-                jedis.close();
-            }
             pool.destroy();
         }
 

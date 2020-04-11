@@ -16,7 +16,7 @@
  */
 package org.apache.dubbo.rpc.filter;
 
-import org.apache.dubbo.common.Constants;
+import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
@@ -31,26 +31,34 @@ import java.util.Arrays;
 /**
  * Log any invocation timeout, but don't stop server from running
  */
-@Activate(group = Constants.PROVIDER)
-public class TimeoutFilter implements Filter {
+@Activate(group = CommonConstants.PROVIDER)
+public class TimeoutFilter implements Filter, Filter.Listener {
 
     private static final Logger logger = LoggerFactory.getLogger(TimeoutFilter.class);
 
+    private static final String TIMEOUT_FILTER_START_TIME = "timeout_filter_start_time";
+
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
-        long start = System.currentTimeMillis();
-        Result result = invoker.invoke(invocation);
-        long elapsed = System.currentTimeMillis() - start;
-        if (invoker.getUrl() != null
-                && elapsed > invoker.getUrl().getMethodParameter(invocation.getMethodName(),
-                "timeout", Integer.MAX_VALUE)) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("invoke time out. method: " + invocation.getMethodName()
-                        + " arguments: " + Arrays.toString(invocation.getArguments()) + " , url is "
-                        + invoker.getUrl() + ", invoke elapsed " + elapsed + " ms.");
-            }
-        }
-        return result;
+        invocation.put(TIMEOUT_FILTER_START_TIME, System.currentTimeMillis());
+        return invoker.invoke(invocation);
     }
 
+    @Override
+    public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
+        Object startTime = invocation.get(TIMEOUT_FILTER_START_TIME);
+        if (startTime != null) {
+            long elapsed = System.currentTimeMillis() - (Long) startTime;
+            if (invoker.getUrl() != null && elapsed > invoker.getUrl().getMethodParameter(invocation.getMethodName(), "timeout", Integer.MAX_VALUE)) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("invoke time out. method: " + invocation.getMethodName() + " arguments: " + Arrays.toString(invocation.getArguments()) + " , url is " + invoker.getUrl() + ", invoke elapsed " + elapsed + " ms.");
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onError(Throwable t, Invoker<?> invoker, Invocation invocation) {
+
+    }
 }

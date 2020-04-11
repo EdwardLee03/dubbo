@@ -30,6 +30,8 @@ import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.RpcInvocation;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -44,17 +46,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class CacheTest {
 
+    @BeforeEach
+    public void setUp() {
+//        ApplicationModel.getConfigManager().clear();
+    }
+
+    @AfterEach
+    public void tearDown() {
+//        ApplicationModel.getConfigManager().clear();
+    }
+
     private void testCache(String type) throws Exception {
+        ApplicationConfig applicationConfig = new ApplicationConfig("cache-test");
+        RegistryConfig registryConfig = new RegistryConfig("N/A");
+        ProtocolConfig protocolConfig = new ProtocolConfig("injvm");
         ServiceConfig<CacheService> service = new ServiceConfig<CacheService>();
-        service.setApplication(new ApplicationConfig("cache-provider"));
-        service.setRegistry(new RegistryConfig("N/A"));
-        service.setProtocol(new ProtocolConfig("injvm"));
+        service.setApplication(applicationConfig);
+        service.setRegistry(registryConfig);
+        service.setProtocol(protocolConfig);
         service.setInterface(CacheService.class.getName());
         service.setRef(new CacheServiceImpl());
         service.export();
         try {
             ReferenceConfig<CacheService> reference = new ReferenceConfig<CacheService>();
-            reference.setApplication(new ApplicationConfig("cache-consumer"));
+            reference.setApplication(applicationConfig);
             reference.setInterface(CacheService.class);
             reference.setUrl("injvm://127.0.0.1?scope=remote&cache=true");
 
@@ -99,8 +114,12 @@ public class CacheTest {
     }
 
     @Test
-    public void testCache() throws Exception {
+    public void testCacheLru() throws Exception {
         testCache("lru");
+    }
+
+    @Test
+    public void testCacheThreadlocal() throws Exception {
         testCache("threadlocal");
     }
 
@@ -112,7 +131,7 @@ public class CacheTest {
         parameters.put("findCache.cache", "threadlocal");
         URL url = new URL("dubbo", "127.0.0.1", 29582, "org.apache.dubbo.config.cache.CacheService", parameters);
 
-        Invocation invocation = new RpcInvocation("findCache", new Class[]{String.class}, new String[]{"0"}, null, null);
+        Invocation invocation = new RpcInvocation("findCache", CacheService.class.getName(), new Class[]{String.class}, new String[]{"0"}, null, null, null);
 
         Cache cache = cacheFactory.getCache(url, invocation);
         assertTrue(cache instanceof ThreadLocalCache);

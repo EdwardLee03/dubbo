@@ -20,6 +20,7 @@ import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ModuleConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.RegistryConfig;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

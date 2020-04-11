@@ -16,18 +16,19 @@
  */
 package org.apache.dubbo.remoting.exchange.support.header;
 
-import org.apache.dubbo.common.Constants;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.Version;
 import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.timer.HashedWheelTimer;
+import org.apache.dubbo.common.utils.Assert;
 import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.NamedThreadFactory;
 import org.apache.dubbo.remoting.Channel;
 import org.apache.dubbo.remoting.ChannelHandler;
+import org.apache.dubbo.remoting.Constants;
 import org.apache.dubbo.remoting.RemotingException;
-import org.apache.dubbo.remoting.Server;
+import org.apache.dubbo.remoting.RemotingServer;
 import org.apache.dubbo.remoting.exchange.ExchangeChannel;
 import org.apache.dubbo.remoting.exchange.ExchangeServer;
 import org.apache.dubbo.remoting.exchange.Request;
@@ -39,6 +40,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Collections.unmodifiableCollection;
+import static org.apache.dubbo.common.constants.CommonConstants.READONLY_EVENT;
+import static org.apache.dubbo.remoting.Constants.HEARTBEAT_CHECK_TICK;
+import static org.apache.dubbo.remoting.Constants.LEAST_HEARTBEAT_DURATION;
+import static org.apache.dubbo.remoting.Constants.TICKS_PER_WHEEL;
+import static org.apache.dubbo.remoting.utils.UrlUtils.getHeartbeat;
+import static org.apache.dubbo.remoting.utils.UrlUtils.getIdleTimeout;
 
 /**
  * ExchangeServerImpl
@@ -47,29 +54,21 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final Server server;
-    // heartbeat timeout (ms), default value is 0 , won't execute a heartbeat.
-    private int heartbeat;
-    private int heartbeatTimeout;
+    private final RemotingServer server;
     private AtomicBoolean closed = new AtomicBoolean(false);
 
-    private HashedWheelTimer heartbeatTimer;
+    private static final HashedWheelTimer IDLE_CHECK_TIMER = new HashedWheelTimer(new NamedThreadFactory("dubbo-server-idleCheck", true), 1,
+            TimeUnit.SECONDS, TICKS_PER_WHEEL);
 
-    public HeaderExchangeServer(Server server) {
-        if (server == null) {
-            throw new IllegalArgumentException("server == null");
-        }
+    private CloseTimerTask closeTimerTask;
+
+    public HeaderExchangeServer(RemotingServer server) {
+        Assert.notNull(server, "server == null");
         this.server = server;
-        this.heartbeat = server.getUrl().getParameter(Constants.HEARTBEAT_KEY, 0);
-        this.heartbeatTimeout = server.getUrl().getParameter(Constants.HEARTBEAT_TIMEOUT_KEY, heartbeat * 3);
-        if (heartbeatTimeout < heartbeat * 2) {
-            throw new IllegalStateException("heartbeatTimeout < heartbeatInterval * 2");
-        }
-
-        startHeartbeatTimer();
+        startIdleCheckTask(getUrl());
     }
 
-    public Server getServer() {
+    public RemotingServer getServer() {
         return server;
     }
 
@@ -129,7 +128,7 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     private void sendChannelReadOnlyEvent() {
         Request request = new Request();
-        request.setEvent(Request.READONLY_EVENT);
+        request.setEvent(READONLY_EVENT);
         request.setTwoWay(false);
         request.setVersion(Version.getProtocolVersion());
 
@@ -149,7 +148,13 @@ public class HeaderExchangeServer implements ExchangeServer {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        stopHeartbeatTimer();
+        cancelCloseTask();
+    }
+
+    private void cancelCloseTask() {
+        if (closeTimerTask != null) {
+            closeTimerTask.cancel();
+        }
     }
 
     @Override
@@ -205,20 +210,13 @@ public class HeaderExchangeServer implements ExchangeServer {
     public void reset(URL url) {
         server.reset(url);
         try {
-            if (url.hasParameter(Constants.HEARTBEAT_KEY)
-                    || url.hasParameter(Constants.HEARTBEAT_TIMEOUT_KEY)) {
-                int h = url.getParameter(Constants.HEARTBEAT_KEY, heartbeat);
-                int t = url.getParameter(Constants.HEARTBEAT_TIMEOUT_KEY, h * 3);
-                if (t < h * 2) {
-                    throw new IllegalStateException("heartbeatTimeout < heartbeatInterval * 2");
-                }
-                if (h != heartbeat || t != heartbeatTimeout) {
-                    heartbeat = h;
-                    heartbeatTimeout = t;
-
-                    stopHeartbeatTimer();
-                    startHeartbeatTimer();
-                }
+            int currHeartbeat = getHeartbeat(getUrl());
+            int currIdleTimeout = getIdleTimeout(getUrl());
+            int heartbeat = getHeartbeat(url);
+            int idleTimeout = getIdleTimeout(url);
+            if (currHeartbeat != heartbeat || currIdleTimeout != idleTimeout) {
+                cancelCloseTask();
+                startIdleCheckTask(url);
             }
         } catch (Throwable t) {
             logger.error(t.getMessage(), t);
@@ -253,35 +251,23 @@ public class HeaderExchangeServer implements ExchangeServer {
      * Each interval cannot be less than 1000ms.
      */
     private long calculateLeastDuration(int time) {
-        if (time / Constants.HEARTBEAT_CHECK_TICK <= 0) {
-            return Constants.LEAST_HEARTBEAT_DURATION;
+        if (time / HEARTBEAT_CHECK_TICK <= 0) {
+            return LEAST_HEARTBEAT_DURATION;
         } else {
-            return time / Constants.HEARTBEAT_CHECK_TICK;
+            return time / HEARTBEAT_CHECK_TICK;
         }
     }
 
-    private void startHeartbeatTimer() {
-        long tickDuration = calculateLeastDuration(heartbeat);
-        heartbeatTimer = new HashedWheelTimer(new NamedThreadFactory("dubbo-server-heartbeat", true), tickDuration,
-                TimeUnit.MILLISECONDS, Constants.TICKS_PER_WHEEL);
+    private void startIdleCheckTask(URL url) {
+        if (!server.canHandleIdle()) {
+            AbstractTimerTask.ChannelProvider cp = () -> unmodifiableCollection(HeaderExchangeServer.this.getChannels());
+            int idleTimeout = getIdleTimeout(url);
+            long idleTimeoutTick = calculateLeastDuration(idleTimeout);
+            CloseTimerTask closeTimerTask = new CloseTimerTask(cp, idleTimeoutTick, idleTimeout);
+            this.closeTimerTask = closeTimerTask;
 
-        AbstractTimerTask.ChannelProvider cp = () -> unmodifiableCollection(HeaderExchangeServer.this.getChannels());
-
-        long heartbeatTick = calculateLeastDuration(heartbeat);
-        long heartbeatTimeoutTick = calculateLeastDuration(heartbeatTimeout);
-        HeartbeatTimerTask heartBeatTimerTask = new HeartbeatTimerTask(cp, heartbeatTick, heartbeat);
-        ReconnectTimerTask reconnectTimerTask = new ReconnectTimerTask(cp, heartbeatTimeoutTick, heartbeatTimeout);
-
-        // init task and start timer.
-        heartbeatTimer.newTimeout(heartBeatTimerTask, heartbeatTick, TimeUnit.MILLISECONDS);
-        heartbeatTimer.newTimeout(reconnectTimerTask, heartbeatTimeoutTick, TimeUnit.MILLISECONDS);
-    }
-
-    private void stopHeartbeatTimer() {
-        if (heartbeatTimer != null) {
-            heartbeatTimer.stop();
-            heartbeatTimer = null;
+            // init task and start timer.
+            IDLE_CHECK_TIMER.newTimeout(closeTimerTask, idleTimeoutTick, TimeUnit.MILLISECONDS);
         }
     }
-
 }

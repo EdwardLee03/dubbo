@@ -20,7 +20,11 @@ import org.apache.dubbo.config.spring.api.DemoService;
 import org.apache.dubbo.config.spring.context.annotation.consumer.ConsumerConfiguration;
 import org.apache.dubbo.config.spring.context.annotation.provider.DemoServiceImpl;
 import org.apache.dubbo.config.spring.context.annotation.provider.ProviderConfiguration;
+import org.apache.dubbo.rpc.model.ApplicationModel;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -34,6 +38,16 @@ import static org.springframework.core.annotation.AnnotationUtils.findAnnotation
  * @since 2.5.8
  */
 public class DubboComponentScanRegistrarTest {
+
+    @BeforeEach
+    public void setUp() {
+        ApplicationModel.getConfigManager().clear();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        ApplicationModel.getConfigManager().clear();
+    }
 
     @Test
     public void test() {

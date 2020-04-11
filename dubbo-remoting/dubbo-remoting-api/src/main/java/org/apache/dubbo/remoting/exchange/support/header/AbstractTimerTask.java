@@ -34,6 +34,8 @@ public abstract class AbstractTimerTask implements TimerTask {
 
     private final Long tick;
 
+    protected volatile boolean cancel = false;
+
     AbstractTimerTask(ChannelProvider channelProvider, Long tick) {
         if (channelProvider == null || tick == null) {
             throw new IllegalArgumentException();
@@ -43,20 +45,28 @@ public abstract class AbstractTimerTask implements TimerTask {
     }
 
     static Long lastRead(Channel channel) {
-        return (Long) channel.getAttribute(HeaderExchangeHandler.KEY_READ_TIMESTAMP);
+        return (Long) channel.getAttribute(HeartbeatHandler.KEY_READ_TIMESTAMP);
     }
 
     static Long lastWrite(Channel channel) {
-        return (Long) channel.getAttribute(HeaderExchangeHandler.KEY_WRITE_TIMESTAMP);
+        return (Long) channel.getAttribute(HeartbeatHandler.KEY_WRITE_TIMESTAMP);
     }
 
     static Long now() {
         return System.currentTimeMillis();
     }
 
+    public void cancel() {
+        this.cancel = true;
+    }
+
     private void reput(Timeout timeout, Long tick) {
         if (timeout == null || tick == null) {
             throw new IllegalArgumentException();
+        }
+
+        if (cancel) {
+            return;
         }
 
         Timer timer = timeout.timer();

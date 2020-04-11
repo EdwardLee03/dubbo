@@ -21,8 +21,8 @@ import org.apache.dubbo.common.logger.Logger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
@@ -43,10 +43,12 @@ public class ExporterSideConfigUrlTest extends UrlTestBase {
     @BeforeEach
     public void setUp() {
         initServConf();
+//        ApplicationModel.getConfigManager().clear();
     }
 
     @AfterEach()
     public void teardown() {
+//        ApplicationModel.getConfigManager().clear();
     }
 
     @Test
